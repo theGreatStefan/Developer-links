@@ -8,6 +8,10 @@ public class QuoteServerThread extends Thread {
 	protected BufferedInputStream bis = null;
 	protected boolean moreQuotes = true;
 	protected File myFile = null;
+	protected ServerSocket senderSocket = new ServerSocket(8000);
+	protected Socket recvSocket;
+	protected ObjectOutputStream boos = null;
+	protected ObjectInputStream bois = null;
 
 	public QuoteServerThread() throws IOException {
 		this("QuoteServerThread");
@@ -37,8 +41,14 @@ public class QuoteServerThread extends Thread {
 				byte[] seq = new byte[6];
 				byte[] info = new byte[100];
 				String seqString;
+				String seqSent = "";
+				String resend = "";
 
 				//Receive request
+				recvSocket = senderSocket.accept();
+				boos = new ObjectOutputStream(recvSocket.getOutputStream());
+				//bois = new BufferedInputStream(new ObjectInputStream(recvSocket.getInputStream()));
+				bois = new ObjectInputStream(recvSocket.getInputStream());
 				DatagramPacket packet = new DatagramPacket(buf, buf.length);
 				socket.receive(packet);
 
@@ -65,6 +75,7 @@ public class QuoteServerThread extends Thread {
 					} else {
 						seqString = "0"+(int)(i);
 					}
+					seqSent = seqSent+seqString+",";
 
 					seq = seqString.getBytes();
 					bis.read(pac, 0, pac.length);
@@ -84,6 +95,24 @@ public class QuoteServerThread extends Thread {
 
 					}
 				}
+
+				/*
+				 * Send the sequences sent and receive the sequences received
+				 */
+				try {
+					boos.writeObject(seqSent);
+					resend = bois.readObject().toString();
+				} catch (IOException e) {
+					System.out.println("IOException");
+				} catch (ClassNotFoundException e2) {
+					System.out.println("ClassNotFoundException");
+				}
+
+				boos.close();
+				bois.close();
+
+				System.out.println("Sender: "+seqSent);
+				System.out.println("Receiver: "+resend);
 				
 				/*count = 5;
 
