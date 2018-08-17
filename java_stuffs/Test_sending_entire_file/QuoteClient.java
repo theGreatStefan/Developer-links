@@ -5,17 +5,23 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class QuoteClient {
+	static String seqSent = "";
+	static ObjectOutputStream oos;
+	static ObjectInputStream ois;
+	static String packets_received = "";
+	static int sendLimit;
+	static Socket sock;
+	static DatagramSocket socket;
+	static byte[] buf;
+	static byte[] info;
+	static InetAddress address;
+	static DatagramPacket packet;
 
 	public static void main(String[] args) throws IOException {
 		double numPacs;
-		String packets_received = "";
 
 		File receivedFile;
 		FileOutputStream output;// = new FileOutputStream("Output.txt");
-
-		Socket sock;
-		ObjectOutputStream oos;
-		ObjectInputStream ois;
 
 		if (args.length < 1) {
 			System.out.println("java QuoteClient <hostname>");
@@ -23,18 +29,18 @@ public class QuoteClient {
 		}
 
 		//get a datagram socket.
-		DatagramSocket socket = new DatagramSocket();
+		socket = new DatagramSocket();
 
 		//send request
-		byte[] buf = new byte[256];
-		byte[] info = new byte[100];
+		buf = new byte[256];
+		info = new byte[100];
 
 		sock = new Socket(args[0], 8000);
 		oos = new ObjectOutputStream(sock.getOutputStream());
 		ois = new ObjectInputStream(sock.getInputStream());
 
-		InetAddress address = InetAddress.getByName(args[0]);
-		DatagramPacket packet = new DatagramPacket(buf, buf.length, address, 8000);
+		address = InetAddress.getByName(args[0]);
+		packet = new DatagramPacket(buf, buf.length, address, 8000);
 		socket.send(packet);
 
 		//get response
@@ -57,6 +63,9 @@ public class QuoteClient {
 		/*
 		 * Receive the actual file in packets
 		 */
+		sendLimit = 3;
+		int limit = sendLimit; //(int)(10/3);
+		int nextLimit = limit;
 		for (int i=0; i<11; i++) {
 
 			packet = new DatagramPacket(buf, buf.length);
@@ -69,9 +78,14 @@ public class QuoteClient {
 			output.write(packet.getData(), 3, packet.getLength()-3);
 			//System.out.println("Received packet nr."+ pacnr);
 			System.out.print(receivedData);
+
+			if (i == limit) {
+				recvTCP();
+				limit = limit + nextLimit;
+			}
 		}
 
-		try {
+		/*try {
 			String seqSent = ois.readObject().toString();
 			oos.writeObject(packets_received);
 		} catch (IOException e) {
@@ -79,6 +93,9 @@ public class QuoteClient {
 		} catch (ClassNotFoundException err) {
 			System.out.println("ClassNotFoundException");
 		}
+			packets_received = "";*/
+		recvTCP();
+
 		oos.close();
 		ois.close();
 
@@ -86,6 +103,32 @@ public class QuoteClient {
 		output.close();
 		 
 		socket.close();
+
+	}
+
+	public static void recvTCP() {
+		try {
+			seqSent = ois.readObject().toString();
+			oos.writeObject("0");
+
+			//___________________________________________
+			/*
+			packet = new DatagramPacket(buf, buf.length);
+			socket.receive(packet);
+
+			String pacnr = new String(packet.getData(), 0, 3);
+			String receivedData = new String(packet.getData(), 3, packet.getLength()-3);
+
+			System.out.println("Resend_____________: "+receivedData);
+			*/
+
+		} catch (IOException e) {
+			System.out.println("IOException");
+		} catch (ClassNotFoundException err) {
+			System.out.println("ClassNotFoundException");
+		}
+
+		packets_received = "";
 
 	}
 
