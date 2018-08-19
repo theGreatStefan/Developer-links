@@ -35,6 +35,8 @@ public class QuoteServerThread extends Thread {
 		socket = new DatagramSocket(8000);
 
 		try {
+			//in = new BufferedReader(new FileReader("person_cheering.mp3"));
+			//myFile = new File("person_cheering.mp3");
 			in = new BufferedReader(new FileReader("one-liners.txt"));
 			myFile = new File("one-liners.txt");
 			bis = new BufferedInputStream(new FileInputStream(myFile));
@@ -49,8 +51,8 @@ public class QuoteServerThread extends Thread {
 		int count;
 		try {
 			buf = new byte[(int)(packetSize)];
-			pac = new byte[253];
-			seq = new byte[6];
+			pac = new byte[251];
+			seq = new byte[8];
 			info = new byte[100];
 
 			sendLimit = 3;	//Amount of packets to be sent before TCP signaling
@@ -84,27 +86,33 @@ public class QuoteServerThread extends Thread {
 				moreQuotes = false;
 		}
 
-		socket.close();
+		//socket.close();
 	}
 
 	protected void sendPackets() throws IOException {
-		info = ("txt, receivedFile").getBytes();
+		double numPacs = Math.ceil((int)(myFile.length())/packetSize);
+		info = (numPacs+","+packetSize+",txt, receivedFile").getBytes();
 			packet = new DatagramPacket(info, info.length, address, port);
 			socket.send(packet);
 
-			double numPacs = Math.ceil((int)(myFile.length())/259);
+			//double numPacs = Math.ceil((int)(myFile.length())/259);
 			System.out.println(numPacs+"");
 
 			int limit = sendLimit; //(int)(numPacs/sendLimit);
 			int nextLimit = limit;
+			System.out.println("Number of packets "+ numPacs);
 			for (double i=0.0; i < numPacs+1; i++) {
 				buf = new byte[259];
 				pac = new byte[253];
-				if (i < 10) {
-					System.out.println((int)(i)+"");
-					seqString = "00"+(int)(i);
+				if (i <= 9) {
+					System.out.println((int)(i+1)+"");
+					seqString = "000"+(int)(i+1);
+				} else if (i <= 99) {
+					seqString = "00"+(int)(i+1);
+				} else if (i <= 999) {
+					seqString = "0"+(int)(i+1);
 				} else {
-					seqString = "0"+(int)(i);
+					seqString = ""+(int)(i+1);
 				}
 				seqSent = seqSent+seqString+",";
 
@@ -119,8 +127,9 @@ public class QuoteServerThread extends Thread {
 
 				packet = new DatagramPacket(buf, buf.length, address, port);
 				socket.send(packet);
+				System.out.println("Test1");
 
-				if (i == limit) {
+				if (i+1 == limit) {
 					sendTCP();
 					limit = limit + nextLimit;
 				}
@@ -135,11 +144,12 @@ public class QuoteServerThread extends Thread {
 			/*
 			 * Send the sequences sent and receive the sequences received
 			 */
-				
-			sendTCP();
+			if (numPacs%2 == 0) {	
+				sendTCP();
+			}
 
-			boos.close();
-			bois.close();
+			//boos.close();
+			//bois.close();
 
 	}
 
@@ -149,7 +159,9 @@ public class QuoteServerThread extends Thread {
 
 		try {
 			boos.writeObject(seqSent);
+			System.out.println("Test2");
 			resend = bois.readObject().toString();
+			System.out.println("Test3");
 
 			if (!resend.equals("0")) {
 				numResend = Integer.parseInt(resend.substring(0,resend.indexOf(",")));
@@ -162,7 +174,7 @@ public class QuoteServerThread extends Thread {
 			}
 
 		} catch (IOException e) {
-			System.out.println("IOException");
+			System.out.println("IOException "+ e);
 		} catch (ClassNotFoundException e2) {
 			System.out.println("ClassNotFoundException");
 		}
