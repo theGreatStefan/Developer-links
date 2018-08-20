@@ -24,6 +24,8 @@ public class QuoteClient {
 	static boolean exit = false;
 	static int numPacs;
 	static int pacSize;
+	static DatagramPacket[] datagramPacket_arr;
+	static HashMap<String, byte[]> hm = new HashMap<>();
 
 	public static void main(String[] args) throws IOException {
 		//File receivedFile;
@@ -78,6 +80,7 @@ public class QuoteClient {
 		 */
 		packet_arr = new String[4];
 		packet_2DArr = new byte[3][254];
+		datagramPacket_arr = new DatagramPacket[4];
 		sendLimit = 3;
 		int limit = sendLimit; //(int)(10/3);
 		int nextLimit = limit;
@@ -94,7 +97,10 @@ public class QuoteClient {
 
 			receivedData = new String(packet.getData(), 4, packet.getLength()-4);
 			packet_arr[j] = receivedData;
-			populate_array(packet, j);	
+			datagramPacket_arr[j] = packet;
+			hm.put((""+packet.hashCode()),packet.getData());
+			System.out.println("\nHashcode: "+packet.hashCode());
+			//populate_array(packet, j);	
 
 			//output.write(packet.getData(), 3, packet.getLength()-3);
 			//System.out.println("Received packet nr."+ pacnr);
@@ -108,27 +114,21 @@ public class QuoteClient {
 			}
 			//if (i == limit) {
 			if ((num)%3 == 0 && num != 0) {
+			System.out.println("\nReceive TCP\n");
 				recvTCP(packet_arr);
+			System.out.println("\nReceived Tcp\n");
 				limit = limit + nextLimit;
 				j = 0;
 				packet_arr = new String[4];
 				packet_2DArr = new byte[3][254];
+				datagramPacket_arr = new DatagramPacket[4];
 			}
 		}
 
-		/*try {
-			String seqSent = ois.readObject().toString();
-			oos.writeObject(packets_received);
-		} catch (IOException e) {
-			System.out.println("IOException");
-		} catch (ClassNotFoundException err) {
-			System.out.println("ClassNotFoundException");
-		}
-			packets_received = "";*/
-	//	if (numPacs%2 == 0) {
+		//if (numPacs%2 == 0) {
 			populate_array(packet, 0);
 			recvTCP(packet_arr);
-	//	}
+		//}
 
 		//oos.close();
 		//ois.close();
@@ -170,11 +170,12 @@ public class QuoteClient {
 				}*/
 
 				//if (packet_2DArr[i][0] != null) {
-					for (int j=4; j < 254; j++) {
+					/*for (int j=4; j < 254; j++) {
 						//System.out.println("_____TEST3_____");
 						output.write(packet_2DArr[i][j]);
-					}
+					}*/
 				//}
+				output.write(datagramPacket_arr[i].getData(), 4, datagramPacket_arr[i].getLength()-4);
 			}
 
 		} catch (IOException e) {
