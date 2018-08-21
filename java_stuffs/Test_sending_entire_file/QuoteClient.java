@@ -26,6 +26,7 @@ public class QuoteClient {
 	static int pacSize;
 	static DatagramPacket[] datagramPacket_arr;
 	static HashMap<String, byte[]> hm = new HashMap<>();
+	static String order;
 
 	public static void main(String[] args) throws IOException {
 		//File receivedFile;
@@ -40,7 +41,7 @@ public class QuoteClient {
 		socket = new DatagramSocket();
 
 		//send request
-		buf = new byte[254];
+		buf = new byte[255];
 		info = new byte[100];
 
 		sock = new Socket(args[0], 8000);
@@ -88,18 +89,25 @@ public class QuoteClient {
 		
 		//for (int i=0; i<11; i++) {
 		while (!exit) {	
+			buf = new byte[255];
 			packet = new DatagramPacket(buf, buf.length);
 			socket.receive(packet);
+			if (j == 0) {
+				output.write(packet.getData(), 0, packet.getLength());
+			}
+			hm.put((""+packet.hashCode()),packet.getData());
+			System.out.println("Bytes received: "+packet.getData().toString());
+			System.out.println("\nHashcode: "+packet.hashCode());
+			
+			//pacnr = new String(packet.getData(), 0, 4);
+			//seqRecv = seqRecv + pacnr + ",";
+			//packets_received = packets_received + pacnr+",";
 
-			pacnr = new String(packet.getData(), 0, 4);
-			seqRecv = seqRecv + pacnr + ",";
-			packets_received = packets_received + pacnr+",";
-
-			receivedData = new String(packet.getData(), 4, packet.getLength()-4);
+			receivedData = new String(packet.getData(), 0, packet.getLength());
+			System.out.println("The packet data received: "+receivedData);
 			packet_arr[j] = receivedData;
 			datagramPacket_arr[j] = packet;
-			hm.put((""+packet.hashCode()),packet.getData());
-			System.out.println("\nHashcode: "+packet.hashCode());
+
 			//populate_array(packet, j);	
 
 			//output.write(packet.getData(), 3, packet.getLength()-3);
@@ -107,7 +115,8 @@ public class QuoteClient {
 			//System.out.print(receivedData);
 
 			j++;
-			int num = Integer.parseInt(pacnr);
+			//int num = Integer.parseInt(pacnr);
+			int num = 1;
 			System.out.println("\nnum: "+num+" numPacs: "+numPacs);
 			if (num == numPacs) {
 				break;
@@ -143,6 +152,7 @@ public class QuoteClient {
 	public static void recvTCP(String[] packet_arr) {
 		try {
 			seqSent = ois.readObject().toString();
+			order = seqSent;
 			System.out.println("________TEST1________"+seqSent);
 			//checkSeq(seqSent);
 			seqRecv = "";
@@ -175,7 +185,14 @@ public class QuoteClient {
 						output.write(packet_2DArr[i][j]);
 					}*/
 				//}
-				output.write(datagramPacket_arr[i].getData(), 4, datagramPacket_arr[i].getLength()-4);
+				//output.write(datagramPacket_arr[i].getData(), 4, datagramPacket_arr[i].getLength()-4);
+				byte[] arr = new byte[256];
+				String key = seqSent.substring(0, seqSent.indexOf(","));
+				seqSent = seqSent.substring(seqSent.indexOf(",")+1);
+				arr = hm.get(key);
+				output.write(arr, 4, arr.length);
+				hm.remove(key);
+
 			}
 
 		} catch (IOException e) {

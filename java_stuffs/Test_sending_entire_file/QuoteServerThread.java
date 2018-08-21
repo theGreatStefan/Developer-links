@@ -15,7 +15,7 @@ public class QuoteServerThread extends Thread {
 	protected String resend = "";
 	protected String seqSent = "";
 	protected BufferedInputStream resendBis = null;
-	protected long packetSize = 259;
+	protected long packetSize = 255;
 	protected DatagramPacket packet;
 	protected InetAddress address;
 	protected int port;
@@ -51,8 +51,8 @@ public class QuoteServerThread extends Thread {
 		int count;
 		try {
 			buf = new byte[(int)(packetSize)];
-			pac = new byte[251];
-			seq = new byte[8];
+			pac = new byte[255];
+			//seq = new byte[4];
 			info = new byte[100];
 
 			sendLimit = 3;	//Amount of packets to be sent before TCP signaling
@@ -102,8 +102,9 @@ public class QuoteServerThread extends Thread {
 			int nextLimit = limit;
 			System.out.println("Number of packets "+ numPacs);
 			for (double i=0.0; i < numPacs+1; i++) {
-				buf = new byte[259];
-				pac = new byte[253];
+				buf = new byte[255];
+				pac = new byte[255];
+				//seq = new byte[4];
 				if (i <= 9) {
 					System.out.println((int)(i+1)+"");
 					seqString = "000"+(int)(i+1);
@@ -114,19 +115,27 @@ public class QuoteServerThread extends Thread {
 				} else {
 					seqString = ""+(int)(i+1);
 				}
-				seqSent = seqSent+seqString+",";
+				//seqSent = seqSent+seqString+",";
 
 				seq = seqString.getBytes();
-				bis.read(pac, 0, pac.length);
-				System.arraycopy(seq, 0, buf, 0, seq.length);
-				System.arraycopy(pac, 0, buf, seq.length, pac.length);
-				System.out.println("Packet nr."+(i+1));
+				//bis.read(pac, 0, pac.length);
+				bis.read(buf, 0, buf.length);
+				//System.arraycopy(seq, 0, buf, 0, seq.length);
+				//System.arraycopy(pac, 0, buf, seq.length, pac.length);
+				//System.out.println("Packet nr."+(i+1));
 				System.out.println("Bytes sent: " + (i*buf.length));
 				//InetAddress address = packet.getAddress();
 				//int port = packet.getPort();
 
 				packet = new DatagramPacket(buf, buf.length, address, port);
 				socket.send(packet);
+
+				System.out.println("Bytes sent: "+packet.getData().toString());
+			
+				seqSent = seqSent+packet.hashCode()+",";
+				System.out.println("seqSent so far = "+ seqSent);
+				String sentData = new String(packet.getData(), 0, packet.getLength());
+				System.out.println("Packet data sent: "+sentData);
 				System.out.println("Test1");
 
 				if (i+1 == limit) {
